@@ -1,23 +1,31 @@
 -- Esempio parsing SDN-WISE
 sdn_wise_proto = Proto("sdn-wise","SDN-WISE Protocol")
 
+-- Per poter effettuare la ricerca bisogna registrare i campi del protocollo
+-- di seguito ho definito i primi tre campi: 
+-- l'etichetta del campo è del tipo sdn-wise.nome dove nome è il nome del campo, minuscolo, abbreviato:
+-- src, dst, w1 ecc. la stringa successiva invece è la descrizione del campo che apparirà nel dissector
+-- e infine abbiamo il tipo di dato...
+len = ProtoField.uint8("sdn-wise.len","Lenght",base.DEC)
+id = ProtoField.uint8("sdn-wise.id","NetworkId",base.DEC)
+src = ProtoField.uint16("sdn-wise.src","Source Address",base.DEC)
 
-
-
+-- ...qui andranno aggiunti tutti i campi 
+sdn_wise_proto.fields = {len,id,src}
 
 -- Dissector
 function sdn_wise_proto.dissector(buffer,pinfo,tree)
-    pinfo.cols.protocol = "SDN-WISE"
+pinfo.cols.protocol = "SDN-WISE"
+local subtree = tree:add(sdn_wise_proto,buffer(),"SDN-WISE Protocol Data")    
 
-
-    local subtree = tree:add(sdn_wise_proto,buffer(),"SDN-WISE Protocol Data")
-    
-    subtree:add(buffer(0,1),"Length: " .. buffer(0,1):uint())
-    subtree:add(buffer(1,1),"Network Id: " .. buffer(1,1):uint())
-    subtree:add(buffer(2,2),"Source Address: " .. buffer(2,2):uint())
+-- fatto ciò utilizzerò la funzione add_le per aggiungere i valori al subtree, il primo
+-- valore è il nome della variabile per il campo che abbiamo definito prima, e il secondo è il buffer 
+	subtree:add_le(len,buffer(0,1))
+	subtree:add_le(id,buffer(1,1))
+	subtree:add_le(src,buffer(2,2))
     subtree:add(buffer(4,2),"Destination Address: " .. buffer(4,2):uint())
     
-local typ = buffer(6,1): le_uint() 
+	local typ = buffer(6,1): le_uint() 
     subtree:add(buffer(6,1),"Type: " .. buffer(6,1):uint())
 
 
