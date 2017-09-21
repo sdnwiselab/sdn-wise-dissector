@@ -1,28 +1,28 @@
 -- SDN-WISE Protocol Dissector
--- Authors: M. Fede - Y. Trapani
+-- Authors: S. Milardo - M. Fede - Y. Trapani
 
 sdn_wise_proto = Proto("sdn-wise","SDN-WISE Protocol")
+id = ProtoField.uint8("sdn-wise.id","Network Id",base.DEC)
 len = ProtoField.uint8("sdn-wise.len","Lenght",base.DEC)
-id = ProtoField.uint8("sdn-wise.id","NetworkId",base.DEC)
-src = ProtoField.uint16("sdn-wise.src","Source Address",base.DEC)
 dst = ProtoField.uint16("sdn-wise.dst","Destination Address",base.DEC)
+src = ProtoField.uint16("sdn-wise.src","Source Address",base.DEC)
 typ = ProtoField.uint8("sdn-wise.typ","Type",base.DEC)
 ttl = ProtoField.uint8("sdn-wise.ttl","Time To Live",base.DEC)
 nxhop = ProtoField.uint16("sdn-wise.nxhop","Next Hop Address",base.DEC)
 
-sdn_wise_proto.fields = {len,id,src,dst,typ,ttl,nxhop}
+sdn_wise_proto.fields = {id,len,dst,src,typ,ttl,nxhop}
 
 -- Dissector
 function sdn_wise_proto.dissector(buffer,pinfo,tree)
     pinfo.cols.protocol = "SDN-WISE"
     local subtree = tree:add(sdn_wise_proto,buffer(),"SDN-WISE Protocol Data")
-	subtree:add_le(len,buffer(0,1))
-	subtree:add_le(id,buffer(1,1))
-	subtree:add_le(src,buffer(2,2))
-	subtree:add_le(dst,buffer(4,2))
+	subtree:add_le(id,buffer(0,1))
+	subtree:add_le(len,buffer(1,1))
+	subtree:add(dst,buffer(2,2))
+	subtree:add(src,buffer(4,2))
 	subtree:add_le(typ,buffer(6,1))
 	subtree:add_le(ttl,buffer(7,1))
-	subtree:add_le(nxhop,buffer(8,2))
+	subtree:add(nxhop,buffer(8,2))
 	local typ = buffer(6,1): le_uint() 
     
 --DATA
@@ -50,6 +50,13 @@ function sdn_wise_proto.dissector(buffer,pinfo,tree)
 			n=n+3
 		end
 	end 
+
+--REQUEST
+	if typ == 3 then 
+		subtree:add(buffer(10,1), "Id: " .. buffer(10,4):uint())
+        subtree:add(buffer(11,1), "Part: " .. buffer(14,4):uint())
+        subtree:add(buffer(12,1), "Total: " .. buffer(18,4):uint())
+	end
 
 --RESPONSE
 	if typ == 4 then 
@@ -79,6 +86,10 @@ function sdn_wise_proto.dissector(buffer,pinfo,tree)
   	subtree:append_text(", Packet details in the tree below")
 end 
 
--- udp.port
-udp_table = DissectorTable.get("udp.port")
-udp_table:add(20015,sdn_wise_proto)
+-- if sdn-wise is encapsulated into an udp packet...
+-- udp_table = DissectorTable.get("udp.port")
+-- udp_table:add(20015,sdn_wise_proto)
+-- otherwise
+table = DissectorTable.get("wtap_encap")
+table:add(104, sdn_wise_proto)
+table:add(127, sdn_wise_proto)
