@@ -33,7 +33,7 @@ function sdn_wise_proto.dissector(buffer,pinfo,tree)
 --BEACON
 	if typ == 1 then 
 		subtree:add(buffer(10,1), "Dist. hop: " .. buffer(10,1):uint())
-		subtree:add(buffer(11,1), "Batt: " .. buffer(11,1):uint())
+		subtree:add(buffer(11,1), "Battery: " .. buffer(11,1):uint())
 	end
 
 --REPORT
